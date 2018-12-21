@@ -1,0 +1,8 @@
+[package]
+name = "dependency_provider"
+version = "0.1.0"
+authors = ["Felix Stegmaier <stegmaier.felix@gmail.com>"]
+edition = "2018"
+
+[dependencies]
+typemap = "^0.3.3"
