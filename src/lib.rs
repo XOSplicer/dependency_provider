@@ -1,10 +1,15 @@
+//! TODO: create level docs
+
+#![deny(missing_docs)]
+#![deny(warnings)]
+
 use std::marker::PhantomData;
 use typemap::{Key, TypeMap};
 
 struct ProviderFunction<T>(Box<dyn Fn() -> T>);
 
 impl<T> ProviderFunction<T> {
-    pub fn new<F>(f: F) -> Self
+    fn new<F>(f: F) -> Self
     where
         F: Fn() -> T + 'static
     {
@@ -21,17 +26,58 @@ impl<T> Key for Depenency<T> where T: 'static {
     type Value = ProviderFunction<T>;
 }
 
+/// A provider for dependencies.
+/// Provider functions can be registered for each depndency type.
+///
+/// # Examples
+///
+/// ```
+/// use dependency_provider::DependencyProvider;
+///
+/// #[derive(Debug, Eq, PartialEq)]
+/// struct A;
+/// #[derive(Debug, Eq, PartialEq)]
+/// struct B(i32);
+/// #[derive(Debug, Eq, PartialEq)]
+/// struct C;
+///
+/// let d = DependencyProvider::new()
+///     .register(|| A)
+///     .register(|| B(0));
+/// let a = d.get::<A>();
+/// assert_eq!(Some(A), a);
+/// let b = d.get::<B>();
+/// assert_eq!(Some(B(0)), b);
+/// let c = d.get::<C>();
+/// assert_eq!(None, c);
+/// let d = d.register(|| B(42));
+/// let b = d.get::<B>();
+/// assert_eq!(Some(B(42)), b);
+/// ```
 pub struct DependencyProvider {
     providers: TypeMap,
 }
 
 impl DependencyProvider {
+
+    /// Create a new instance without any registered provider functions
     pub fn new() -> Self {
         DependencyProvider {
             providers: TypeMap::new(),
         }
     }
-    pub fn set<T, F>(mut self, f: F) -> Self
+
+    /// Register a new provider function for a dependency.
+    /// The return type of the provider function
+    /// is the type of the dependency that is being registered.
+    ///
+    /// Self is consumed and returned in order to chain calls
+    /// while creating the DependencyProvider.
+    ///
+    /// Calling `register` multiple times for the same dependency type
+    /// is allowed, and only the currently last registered provider function
+    /// is used to provide the dependency.
+    pub fn register<T, F>(mut self, f: F) -> Self
     where
         F: Fn() -> T + 'static,
         T: 'static,
@@ -40,6 +86,12 @@ impl DependencyProvider {
             .insert::<Depenency<T>>(ProviderFunction::new(f));
         self
     }
+
+    /// Get an instance of a dependency
+    /// by calling a previously registered provider function.
+    ///
+    /// Returns `None` if no provider function has been registered
+    /// for this dependency type.
     pub fn get<T>(&self) -> Option<T>
     where
         T: 'static,
@@ -48,28 +100,13 @@ impl DependencyProvider {
     }
 }
 
+impl Default for DependencyProvider {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 #[cfg(test)]
 mod tests {
-    use super::DependencyProvider;
-
-    #[derive(Debug, Eq, PartialEq)]
-    struct A;
-    #[derive(Debug, Eq, PartialEq)]
-    struct B(i32);
-    #[derive(Debug, Eq, PartialEq)]
-    struct C;
-
-    #[test]
-    fn it_works() {
-        let d = DependencyProvider::new().set(|| A).set(|| B(0));
-        let a = d.get::<A>();
-        assert_eq!(Some(A), a);
-        let b = d.get::<B>();
-        assert_eq!(Some(B(0)), b);
-        let c = d.get::<C>();
-        assert_eq!(None, c);
-        let d = d.set(|| B(42));
-        let b = d.get::<B>();
-        assert_eq!(Some(B(42)), b);
-    }
+    // use super::DependencyProvider;
 }
