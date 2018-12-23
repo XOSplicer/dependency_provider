@@ -11,7 +11,7 @@ struct ProviderFunction<T>(Box<dyn Fn() -> T + Send + Sync>);
 impl<T> ProviderFunction<T> {
     fn new<F>(f: F) -> Self
     where
-        F: Fn() -> T + 'static + Send + Sync
+        F: Fn() -> T + 'static + Send + Sync,
     {
         ProviderFunction(Box::new(f))
     }
@@ -22,7 +22,10 @@ impl<T> ProviderFunction<T> {
 
 struct Depenency<T: 'static>(PhantomData<T>);
 
-impl<T> Key for Depenency<T> where T: 'static {
+impl<T> Key for Depenency<T>
+where
+    T: 'static,
+{
     type Value = ProviderFunction<T>;
 }
 
@@ -59,7 +62,6 @@ pub struct DependencyProvider {
 }
 
 impl DependencyProvider {
-
     /// Create a new instance without any registered provider functions
     pub fn new() -> Self {
         DependencyProvider {
@@ -104,7 +106,9 @@ impl DependencyProvider {
     /// assert_eq!(Some(B::default()), b);
     /// ```
     pub fn register_default<T>(mut self) -> Self
-    where T: Default + 'static {
+    where
+        T: Default + 'static,
+    {
         self.providers
             .insert::<Depenency<T>>(ProviderFunction::new(T::default));
         self
@@ -145,26 +149,29 @@ mod tests {
         #[derive(Debug)]
         struct Bar;
         impl Foo for Bar {
-            fn foo(&self) -> String { "Bar".into() }
+            fn foo(&self) -> String {
+                "Bar".into()
+            }
         }
         #[derive(Debug)]
         struct Baz;
         impl Foo for Baz {
-            fn foo(&self) -> String { "Baz".into() }
+            fn foo(&self) -> String {
+                "Baz".into()
+            }
         }
 
         type DynFoo = Box<dyn Foo + Send + Sync>;
-        let d = DependencyProvider::new()
-            .register(|| {
-                let bar: DynFoo = Box::new(Bar);
-                bar
-            });
+        let d = DependencyProvider::new().register(|| {
+            let bar: DynFoo = Box::new(Bar);
+            bar
+        });
         let b: Option<DynFoo> = d.get::<DynFoo>();
         assert_eq!(Some("Bar".into()), b.map(|f| f.foo()));
         let d = d.register(|| {
-                let baz: DynFoo = Box::new(Baz);
-                baz
-            });
+            let baz: DynFoo = Box::new(Baz);
+            baz
+        });
         let b: Option<DynFoo> = d.get::<DynFoo>();
         assert_eq!(Some("Baz".into()), b.map(|f| f.foo()));
     }
@@ -178,12 +185,9 @@ mod tests {
         #[derive(Debug, Eq, PartialEq)]
         struct C;
 
-        lazy_static!{
-            static ref PROVIDER: DependencyProvider = {
-                DependencyProvider::new()
-                    .register(|| A)
-                    .register(|| B(0))
-            };
+        lazy_static! {
+            static ref PROVIDER: DependencyProvider =
+                { DependencyProvider::new().register(|| A).register(|| B(0)) };
         }
 
         let a = PROVIDER.get::<A>();
@@ -198,16 +202,23 @@ mod tests {
     fn shared_ref() {
         #[derive(Debug, Clone)]
         struct Foo(Arc<Mutex<i32>>);
-        lazy_static!{
+        lazy_static! {
             static ref FOO: Foo = Foo(Arc::new(Mutex::new(0)));
         }
-        let d = DependencyProvider::new()
-            .register(|| FOO.clone());
+        let d = DependencyProvider::new().register(|| FOO.clone());
         let f1 = d.get::<Foo>().unwrap();
-        { *f1.0.lock().unwrap() +=1; }
-        { assert_eq!(1, *FOO.0.lock().unwrap()) }
+        {
+            *f1.0.lock().unwrap() += 1;
+        }
+        {
+            assert_eq!(1, *FOO.0.lock().unwrap())
+        }
         let f2 = d.get::<Foo>().unwrap();
-        { *f2.0.lock().unwrap() +=1; }
-        { assert_eq!(2, *FOO.0.lock().unwrap()) }
+        {
+            *f2.0.lock().unwrap() += 1;
+        }
+        {
+            assert_eq!(2, *FOO.0.lock().unwrap())
+        }
     }
 }
