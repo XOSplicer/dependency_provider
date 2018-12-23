@@ -114,7 +114,28 @@ impl DependencyProvider {
         self
     }
 
-    // TODO: pub fn unregister<T>(&mut self) {}
+    /// Remove a previously registered provider function for a dependency type.
+    /// Following calls to `get` will return `None` for this type.
+    ///
+    /// Examples:
+    /// ```
+    /// use dependency_provider::DependencyProvider;
+    ///
+    /// #[derive(Debug, Eq, PartialEq, Default)]
+    /// struct A;
+    ///
+    /// let mut d = DependencyProvider::new()
+    ///     .register(|| A);
+    /// assert_eq!(Some(A), d.get::<A>());
+    /// d.unregister::<A>();
+    /// assert_eq!(None, d.get::<A>());
+    /// ```
+    pub fn unregister<T>(&mut self)
+    where
+        T: 'static,
+    {
+        self.providers.remove::<Depenency<T>>();
+    }
 
     /// Get an instance of a dependency
     /// by calling a previously registered provider function.
