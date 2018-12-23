@@ -87,6 +87,29 @@ impl DependencyProvider {
         self
     }
 
+    /// Register a provider function for a dependency type
+    /// that implements `Default`.
+    /// The default implementation is used to provide the depenedency.
+    ///
+    /// Examples:
+    /// ```
+    /// use dependency_provider::DependencyProvider;
+    ///
+    /// #[derive(Debug, Eq, PartialEq, Default)]
+    /// struct B(i32);
+    ///
+    /// let d = DependencyProvider::new()
+    ///     .register_default::<B>();
+    /// let b = d.get::<B>();
+    /// assert_eq!(Some(B::default()), b);
+    /// ```
+    pub fn register_default<T>(mut self) -> Self
+    where T: Default + 'static {
+        self.providers
+            .insert::<Depenency<T>>(ProviderFunction::new(|| T::default()));
+        self
+    }
+
     /// Get an instance of a dependency
     /// by calling a previously registered provider function.
     ///
