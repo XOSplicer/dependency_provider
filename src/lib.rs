@@ -4,14 +4,14 @@
 #![deny(warnings)]
 
 use std::marker::PhantomData;
-use typemap::{Key, TypeMap};
+use typemap::{Key, ShareMap, TypeMap};
 
-struct ProviderFunction<T>(Box<dyn Fn() -> T>);
+struct ProviderFunction<T>(Box<dyn Fn() -> T + Send + Sync>);
 
 impl<T> ProviderFunction<T> {
     fn new<F>(f: F) -> Self
     where
-        F: Fn() -> T + 'static
+        F: Fn() -> T + 'static + Send + Sync
     {
         ProviderFunction(Box::new(f))
     }
@@ -55,7 +55,7 @@ impl<T> Key for Depenency<T> where T: 'static {
 /// assert_eq!(Some(B(42)), b);
 /// ```
 pub struct DependencyProvider {
-    providers: TypeMap,
+    providers: ShareMap,
 }
 
 impl DependencyProvider {
@@ -63,7 +63,7 @@ impl DependencyProvider {
     /// Create a new instance without any registered provider functions
     pub fn new() -> Self {
         DependencyProvider {
-            providers: TypeMap::new(),
+            providers: TypeMap::custom(),
         }
     }
 
@@ -79,7 +79,7 @@ impl DependencyProvider {
     /// is used to provide the dependency.
     pub fn register<T, F>(mut self, f: F) -> Self
     where
-        F: Fn() -> T + 'static,
+        F: Fn() -> T + 'static + Send + Sync,
         T: 'static,
     {
         self.providers
@@ -108,5 +108,31 @@ impl Default for DependencyProvider {
 
 #[cfg(test)]
 mod tests {
-    // use super::DependencyProvider;
+    use crate::DependencyProvider;
+    use lazy_static::lazy_static;
+
+    #[test]
+    fn lazy_static_call() {
+        #[derive(Debug, Eq, PartialEq)]
+        struct A;
+        #[derive(Debug, Eq, PartialEq)]
+        struct B(i32);
+        #[derive(Debug, Eq, PartialEq)]
+        struct C;
+
+        lazy_static!{
+            static ref PROVIDER: DependencyProvider = {
+                DependencyProvider::new()
+                    .register(|| A)
+                    .register(|| B(0))
+            };
+        }
+
+        let a = PROVIDER.get::<A>();
+        assert_eq!(Some(A), a);
+        let b = PROVIDER.get::<B>();
+        assert_eq!(Some(B(0)), b);
+        let c = PROVIDER.get::<C>();
+        assert_eq!(None, c);
+    }
 }
