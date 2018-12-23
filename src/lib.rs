@@ -106,7 +106,7 @@ impl DependencyProvider {
     pub fn register_default<T>(mut self) -> Self
     where T: Default + 'static {
         self.providers
-            .insert::<Depenency<T>>(ProviderFunction::new(|| T::default()));
+            .insert::<Depenency<T>>(ProviderFunction::new(T::default));
         self
     }
 
