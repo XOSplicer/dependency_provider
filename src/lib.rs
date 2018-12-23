@@ -110,6 +110,8 @@ impl DependencyProvider {
         self
     }
 
+    // TODO: pub fn unregister<T>(&mut self) {}
+
     /// Get an instance of a dependency
     /// by calling a previously registered provider function.
     ///
@@ -133,6 +135,38 @@ impl Default for DependencyProvider {
 mod tests {
     use crate::DependencyProvider;
     use lazy_static::lazy_static;
+
+    #[test]
+    fn trait_objects() {
+        trait Foo {
+            fn foo(&self) -> String;
+        }
+        #[derive(Debug)]
+        struct Bar;
+        impl Foo for Bar {
+            fn foo(&self) -> String { "Bar".into() }
+        }
+        #[derive(Debug)]
+        struct Baz;
+        impl Foo for Baz {
+            fn foo(&self) -> String { "Baz".into() }
+        }
+
+        type DynFoo = Box<dyn Foo + Send + Sync>;
+        let d = DependencyProvider::new()
+            .register(|| {
+                let bar: DynFoo = Box::new(Bar);
+                bar
+            });
+        let b: Option<DynFoo> = d.get::<DynFoo>();
+        assert_eq!(Some("Bar".into()), b.map(|f| f.foo()));
+        let d = d.register(|| {
+                let baz: DynFoo = Box::new(Baz);
+                baz
+            });
+        let b: Option<DynFoo> = d.get::<DynFoo>();
+        assert_eq!(Some("Baz".into()), b.map(|f| f.foo()));
+    }
 
     #[test]
     fn lazy_static_call() {
