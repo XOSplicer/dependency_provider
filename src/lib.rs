@@ -135,6 +135,7 @@ impl Default for DependencyProvider {
 mod tests {
     use crate::DependencyProvider;
     use lazy_static::lazy_static;
+    use std::sync::{Arc, Mutex};
 
     #[test]
     fn trait_objects() {
@@ -191,5 +192,22 @@ mod tests {
         assert_eq!(Some(B(0)), b);
         let c = PROVIDER.get::<C>();
         assert_eq!(None, c);
+    }
+
+    #[test]
+    fn shared_ref() {
+        #[derive(Debug, Clone)]
+        struct Foo(Arc<Mutex<i32>>);
+        lazy_static!{
+            static ref FOO: Foo = Foo(Arc::new(Mutex::new(0)));
+        }
+        let d = DependencyProvider::new()
+            .register(|| FOO.clone());
+        let f1 = d.get::<Foo>().unwrap();
+        { *f1.0.lock().unwrap() +=1; }
+        { assert_eq!(1, *FOO.0.lock().unwrap()) }
+        let f2 = d.get::<Foo>().unwrap();
+        { *f2.0.lock().unwrap() +=1; }
+        { assert_eq!(2, *FOO.0.lock().unwrap()) }
     }
 }
