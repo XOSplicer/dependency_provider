@@ -1,15 +1,14 @@
-use lazy_static::lazy_static;
 use crate::DependencyProvider;
+use lazy_static::lazy_static;
 use std::sync::RwLock;
 
-lazy_static!{
+lazy_static! {
     static ref GLOBAL_PROVIDER: RwLock<Option<DependencyProvider>> = RwLock::new(None);
 }
 
 #[allow(dead_code)]
 pub fn init(provider: DependencyProvider) {
-    (*GLOBAL_PROVIDER.write().unwrap())
-        .replace(provider);
+    (*GLOBAL_PROVIDER.write().unwrap()).replace(provider);
 }
 
 #[allow(dead_code)]
@@ -22,19 +21,18 @@ pub fn get_dependency<T: 'static>() -> Option<T> {
 
 #[cfg(test)]
 mod tests {
-    use crate::DependencyProvider;
     use crate::global_provider;
+    use crate::DependencyProvider;
 
     use lazy_static::lazy_static;
     use std::sync::Mutex;
-    lazy_static!{
+    lazy_static! {
         static ref SEQUENTIAL_EXEC: Mutex<()> = Mutex::new(());
     }
 
     fn reset() {
         use super::GLOBAL_PROVIDER;
-        (*GLOBAL_PROVIDER.write().unwrap())
-            .take();
+        (*GLOBAL_PROVIDER.write().unwrap()).take();
     }
 
     #[test]
@@ -66,7 +64,6 @@ mod tests {
         #[derive(Debug, Eq, PartialEq)]
         struct A;
         let _a = global_provider::get_dependency::<A>();
-
     }
 
 }
