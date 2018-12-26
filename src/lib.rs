@@ -3,6 +3,8 @@
 #![deny(missing_docs)]
 #![deny(warnings)]
 
+mod global_provider;
+
 use std::marker::PhantomData;
 use typemap::{Key, ShareMap, TypeMap};
 

@@ -4,7 +4,6 @@ version = "0.1.0"
 authors = ["Felix Stegmaier <stegmaier.felix@gmail.com>"]
 edition = "2018"
 license = "MIT"
-license-file = "LICENSE"
 repository = "https://github.com/XOSplicer/dependency_provider.git"
 homepage = "https://github.com/XOSplicer/dependency_provider"
 readme = "README.md"
@@ -14,6 +13,7 @@ travis-ci = { repository = "XOSplicer/dependency_provider", branch = "master" }
 
 [dependencies]
 typemap = "^0.3.3"
+lazy_static = "^1.2.0"
 
 [dev-dependencies]
-lazy_static = "^1.2.0"
+
