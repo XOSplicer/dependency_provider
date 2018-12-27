@@ -19,6 +19,18 @@ pub fn get_dependency<T: 'static>() -> Option<T> {
         .get()
 }
 
+#[macro_export]
+macro_rules! inject {
+    (let $i:ident: $t:ty) => {
+        let $i: $t = global_provider::get_dependency::<$t>()
+            .expect("No provider function registered for dependency $t");
+    };
+    (let mut $i:ident: $t:ty) => {
+        let mut $i: $t = global_provider::get_dependency::<$t>()
+            .expect("No provider function registered for dependency $t");
+    };
+}
+
 #[cfg(test)]
 mod tests {
     use crate::global_provider;
@@ -37,7 +49,7 @@ mod tests {
 
     #[test]
     fn global_provider() {
-        let _ = SEQUENTIAL_EXEC.lock();
+        let lock = SEQUENTIAL_EXEC.lock();
         reset();
         #[derive(Debug, Eq, PartialEq)]
         struct A;
@@ -54,16 +66,79 @@ mod tests {
         assert_eq!(Some(B(0)), b);
         let c = global_provider::get_dependency::<C>();
         assert_eq!(None, c);
+        drop(lock);
     }
 
     #[test]
     #[should_panic]
     fn without_init() {
-        let _ = SEQUENTIAL_EXEC.lock();
+        let lock = SEQUENTIAL_EXEC.lock();
         reset();
         #[derive(Debug, Eq, PartialEq)]
         struct A;
         let _a = global_provider::get_dependency::<A>();
+        drop(lock);
+    }
+
+    #[test]
+    fn without_register() {
+        let lock = SEQUENTIAL_EXEC.lock();
+        reset();
+        #[derive(Debug, Eq, PartialEq)]
+        struct A;
+        global_provider::init(DependencyProvider::new());
+        let a = global_provider::get_dependency::<A>();
+        assert_eq!(None, a);
+        drop(lock);
+    }
+
+    #[test]
+    fn inject() {
+        let lock = SEQUENTIAL_EXEC.lock();
+        reset();
+        #[derive(Debug, Eq, PartialEq)]
+        struct A;
+        global_provider::init(DependencyProvider::new().register(|| A));
+        inject!(let a: A);
+        assert_eq!(A, a);
+        drop(lock);
+    }
+
+    #[test]
+    fn inject_mut() {
+        let lock = SEQUENTIAL_EXEC.lock();
+        reset();
+        #[derive(Debug, Eq, PartialEq)]
+        struct A;
+        global_provider::init(DependencyProvider::new().register(|| A));
+        inject!(let mut a: A);
+        assert_eq!(A, a);
+        a = A; // must be mut
+        assert_eq!(A, a); // must be read
+        drop(lock);
+    }
+
+    #[test]
+    #[should_panic]
+    fn inject_without_init() {
+        let lock = SEQUENTIAL_EXEC.lock();
+        reset();
+        #[derive(Debug, Eq, PartialEq)]
+        struct A;
+        inject!(let _a: A);
+        drop(lock);
+    }
+
+    #[test]
+    #[should_panic]
+    fn inject_without_register() {
+        let lock = SEQUENTIAL_EXEC.lock();
+        reset();
+        #[derive(Debug, Eq, PartialEq)]
+        struct A;
+        global_provider::init(DependencyProvider::new());
+        inject!(let _a: A);
+        drop(lock);
     }
 
 }
